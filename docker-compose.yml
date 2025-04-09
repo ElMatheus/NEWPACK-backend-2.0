@@ -22,17 +22,17 @@ services:
     volumes:
       - redis_data:/bitnami/redis/data
 
-  # api:
-  #   container_name: api-newpack
-  #   build: .
-  #   restart: always
-  #   ports:
-  #     - "4000:4000"
-  #   depends_on:
-  #     - postgres_db
-  #     - redis
-  #   env_file:
-  #     - .env
+  api:
+    container_name: api-newpack
+    build: .
+    restart: always
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres_db
+      - redis
+    env_file:
+      - .env
 
 volumes:
   postgres_data:

@@ -53,6 +53,6 @@ app.register(fastifyJwt, {
 
 const port = Number(process.env.PORT) || 5000
 
-app.listen({ port }).then(() => {
+app.listen({ port, host: '0.0.0.0' }).then(() => {
   console.log(`Server is running on http://localhost:${port}`);
 });
