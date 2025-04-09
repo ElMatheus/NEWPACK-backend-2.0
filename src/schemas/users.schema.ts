@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { addressResponseSchema } from "./address.schema";
-import { productsResponseSchema } from "./products.schema";
+import { productsResponseSchema, productsWithQuantityResponseSchema } from "./products.schema";
 
 export const userSchema = z.object({
   id: z.string(),
@@ -8,6 +8,14 @@ export const userSchema = z.object({
   full_name: z.string(),
   Address: addressResponseSchema,
   products: productsResponseSchema.optional(),
+});
+
+export const userByIdSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  full_name: z.string(),
+  Address: addressResponseSchema,
+  products: productsWithQuantityResponseSchema,
 });
 
 export const createUserSchema = z.object({
