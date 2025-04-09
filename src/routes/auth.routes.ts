@@ -4,7 +4,6 @@ import { prisma } from "../database/prisma-client";
 import { loginSchema } from "../schemas/auth.schema";
 import { nanoid } from "nanoid";
 import { compare } from "bcrypt";
-import jwt from "jsonwebtoken";
 import dayjs from "dayjs";
 
 
@@ -55,17 +54,11 @@ export async function authRouter(app: FastifyTypedInstance) {
         });
       }
 
-      const secretToken = process.env.SECRET_TOKEN;
-
-      if (!secretToken) {
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Secret token not found",
-        });
-      }
-
-      const token = jwt.sign({ id: user.id, isAdmin: user.isAdmin }, secretToken, {
-        subject: user.id,
+      const token = app.jwt.sign({
+        id: user.id,
+        isAdmin: user.isAdmin,
+      }, {
+        sub: user.id,
         expiresIn: "15m",
       });
 
@@ -159,17 +152,11 @@ export async function authRouter(app: FastifyTypedInstance) {
         });
       }
 
-      const secretToken = process.env.SECRET_TOKEN;
-
-      if (!secretToken) {
-        return reply.status(500).send({
-          error: "Internal Server Error",
-          message: "Secret token not found",
-        });
-      }
-
-      const newToken = jwt.sign({ id: token.user_id, isAdmin: user.isAdmin }, secretToken, {
-        subject: token.user_id,
+      const newToken = app.jwt.sign({
+        id: token.user_id,
+        isAdmin: user.isAdmin,
+      }, {
+        sub: token.user_id,
         expiresIn: "15m",
       });
 
