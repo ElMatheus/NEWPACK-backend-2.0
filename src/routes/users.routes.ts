@@ -117,7 +117,8 @@ export async function usersRouter(app: FastifyTypedInstance) {
               description: detail.product.description,
               unit_quantity: detail.product.unit_quantity,
               unit_value: detail.product.unit_value,
-              quantity: detail.quantity, // mais recente
+              quantity: detail.quantity,
+              order_date: order.order_date,
             });
           }
         }

@@ -25,6 +25,7 @@ export const productWithQuantitySchema = z.object({
   unit_quantity: z.number().optional().nullable(),
   unit_value: z.number(),
   quantity: z.number(),
+  order_date: z.date(),
 });
 
 export const updateProductSchema = z.object({

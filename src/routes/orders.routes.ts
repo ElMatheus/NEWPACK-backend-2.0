@@ -45,6 +45,7 @@ export async function ordersRouter(app: FastifyTypedInstance) {
 
       const orders = await prisma.order.findMany({
         where: { client_id: user_id },
+        orderBy: { order_date: 'desc' },
         include: {
           Order_details: {
             include: { product: true }
@@ -59,6 +60,7 @@ export async function ordersRouter(app: FastifyTypedInstance) {
     }
 
     const orders = await prisma.order.findMany({
+      orderBy: { order_date: 'desc' },
       include: {
         Order_details: {
           include: { product: true }
