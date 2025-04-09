@@ -15,6 +15,9 @@ export async function ordersRouter(app: FastifyTypedInstance) {
         { bearerAuth: [] }
       ],
       description: "Get all orders",
+      querystring: z.object({
+        user_id: z.string().optional().describe("User ID"),
+      }),
       response: {
         200: ordersResponseSchema,
         401: z.object({
@@ -24,6 +27,37 @@ export async function ordersRouter(app: FastifyTypedInstance) {
       }
     },
   }, async (require, reply) => {
+    const { user_id } = require.query as { user_id?: string };
+
+    if (user_id) {
+      const userExists = await prisma.user.findUnique({
+        where: {
+          id: user_id,
+        },
+      });
+
+      if (!userExists) {
+        return reply.status(401).send({
+          error: "User not found",
+          message: "User with this ID does not exist",
+        });
+      }
+
+      const orders = await prisma.order.findMany({
+        where: { client_id: user_id },
+        include: {
+          Order_details: {
+            include: { product: true }
+          },
+          client: {
+            include: { Address: { where: { active: true } } }
+          }
+        },
+      });
+
+      return reply.status(200).send(orders);
+    }
+
     const orders = await prisma.order.findMany({
       include: {
         Order_details: {
