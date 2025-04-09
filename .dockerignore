@@ -1,0 +1,17 @@
+node_modules
+
+# Ignore arquivos de configuração locais
+docker-compose.override.yml
+
+# Ignore arquivos gerados
+dist/
+*.log
+*.tsbuildinfo
+
+# Ignore arquivos específicos do sistema operacional
+.DS_Store
+Thumbs.db
+
+# Ignore arquivos de banco de dados locais
+prisma/dev.db
+prisma/dev.db-journal
