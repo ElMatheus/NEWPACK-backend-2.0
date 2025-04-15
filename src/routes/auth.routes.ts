@@ -18,6 +18,7 @@ export async function authRouter(app: FastifyTypedInstance) {
           message: z.string().describe("Message"),
           token: z.string().describe("Token"),
           refresh_token: z.string().describe("Refresh Token"),
+          user_id: z.string().describe("User ID"),
         }).describe("User Logged In"),
         400: z.object({
           error: z.string().describe("Error"),
@@ -76,6 +77,7 @@ export async function authRouter(app: FastifyTypedInstance) {
         message: `User ${user.name} logged in successfully`,
         token,
         refresh_token: refresh_token.id,
+        user_id: user.id,
       });
 
     } catch (error) {
