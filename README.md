@@ -23,6 +23,7 @@ Projeto afim de automatizar os pedidos da NEWPACK para melhorar o serviço ao cl
 - Prisma ORM
 - Nodemailer
 - Docker
+- Nginx
 - Swagger
 
 ## Executar o Projeto
@@ -45,3 +46,10 @@ docker-compose up -d
 
 ### 4. Acesse a documentação Swagger
  `http://localhost:4000/docs`
+
+
+## Contato
+
+Caso tenha alguma dúvida sobre o sistema ou interesse em entrar em contato, estou à disposição pelo e-mail:
+
+matheusgomesgoncalves.564@gmail.com
