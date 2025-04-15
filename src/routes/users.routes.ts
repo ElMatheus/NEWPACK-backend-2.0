@@ -219,7 +219,11 @@ export async function usersRouter(app: FastifyTypedInstance) {
           }
         },
         include: {
-          product: true,
+          product: {
+            include: {
+              Product_image: true,
+            }
+          },
           order: {
             select: {
               order_date: true,
@@ -265,6 +269,7 @@ export async function usersRouter(app: FastifyTypedInstance) {
         unit_value: item.product.unit_value,
         quantity: item.quantity,
         order_date: item.order.order_date,
+        image: item.product.Product_image[0]?.image_url,
       }));
 
       return reply.status(200).send(formattedProducts);
