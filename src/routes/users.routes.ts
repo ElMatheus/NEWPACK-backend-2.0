@@ -1,6 +1,8 @@
 import z from "zod";
 import { FastifyTypedInstance } from "../types/Server";
 import { usersResponseSchema, userByIdSchema, createUserSchema, updateUserSchema } from "../schemas/users.schema";
+import { productsWithQuantityResponseSchema } from "../schemas/products.schema";
+import { typeProduct, categoryProduct } from "@prisma/client";
 import { prisma } from "../database/prisma-client";
 import { nanoid } from "nanoid";
 import { hash } from "bcrypt";
@@ -154,6 +156,118 @@ export async function usersRouter(app: FastifyTypedInstance) {
         products: productsWithDetails,
       });
 
+    } catch (error) {
+      console.error(error);
+      return reply.status(500).send({
+        error: "Internal Server Error",
+        message: "Something went wrong",
+      });
+    }
+  });
+
+  app.get("/:id/products", {
+    preHandler: ensureAuthenticated,
+    schema: {
+      tags: ["users"],
+      security: [
+        {
+          bearerAuth: [],
+        },
+      ],
+      description: "Get products by user ID",
+      querystring: z.object({
+        category: z.string().optional().describe("Category"),
+        type: z.string().optional().describe("Type"),
+      }),
+      params: z.object({
+        id: z.string().describe("User ID"),
+      }),
+      response: {
+        200: productsWithQuantityResponseSchema,
+        404: z.object({
+          error: z.string().describe("Error"),
+          message: z.string().describe("Message"),
+        }).describe("Not Found"),
+      }
+    },
+  }, async (require, reply) => {
+    const { id } = require.params;
+    const { category, type } = require.query as { category?: string; type?: string };
+
+    try {
+      const user = await prisma.user.findUnique({
+        where: {
+          id
+        }
+      });
+
+      if (!user) {
+        return reply.status(404).send({
+          error: "User not found",
+          message: "User with this ID does not exist",
+        });
+      }
+
+      const orderDetails = await prisma.order_details.findMany({
+        where: {
+          order: {
+            client_id: id,
+          },
+          product: {
+            ...(category && { category: category as categoryProduct }),
+            ...(type && { type: type as typeProduct }),
+          }
+        },
+        include: {
+          product: true,
+          order: {
+            select: {
+              order_date: true,
+              Order_details: {
+                select: {
+                  quantity: true,
+                }
+              }
+            }
+          }
+        },
+        orderBy: [
+          {
+            order: {
+              order_date: "desc"
+            }
+          },
+          {
+            product: {
+              id: "asc"
+            }
+          }
+        ],
+        distinct: ["product_id"]
+      })
+
+      if (orderDetails.length === 0) {
+        return reply.status(404).send({
+          error: "No products found",
+          message: "No products found for this user",
+        });
+      }
+
+      const formattedProducts = orderDetails.map((item) => ({
+        id: item.product.id,
+        name: item.product.name,
+        toughness: item.product.toughness,
+        dimension: item.product.dimension,
+        type: item.product.type,
+        category: item.product.category,
+        description: item.product.description,
+        unit_quantity: item.product.unit_quantity,
+        unit_value: item.product.unit_value,
+        quantity: item.quantity,
+        order_date: item.order.order_date,
+      }));
+
+      return reply.status(200).send(formattedProducts);
     } catch (error) {
       console.error(error);
       return reply.status(500).send({
