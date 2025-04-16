@@ -279,6 +279,7 @@ export async function addressRouter(app: FastifyTypedInstance) {
         await prisma.address.updateMany({
           where: {
             user_id: address.user_id,
+            id: { not: Number(id) },
             active: true,
           },
           data: {
@@ -286,18 +287,29 @@ export async function addressRouter(app: FastifyTypedInstance) {
           },
         });
       } else if (active === false) {
-        const activeAddresses = await prisma.address.findMany({
+        const currentActiveAddress = await prisma.address.findFirst({
           where: {
             user_id: address.user_id,
             active: true,
+            id: Number(id),
           },
         });
 
-        if (activeAddresses.length <= 1) {
-          return reply.status(400).send({
-            error: "Invalid Operation",
-            message: "A user must have exactly one active address.",
+        if (currentActiveAddress) {
+          const otherActiveAddresses = await prisma.address.count({
+            where: {
+              user_id: address.user_id,
+              active: true,
+              id: { not: Number(id) },
+            },
           });
+
+          if (otherActiveAddresses === 0) {
+            return reply.status(400).send({
+              error: "Invalid Operation",
+              message: "Cannot deactivate the only active address. User must have exactly one active address.",
+            });
+          }
         }
       }
 
