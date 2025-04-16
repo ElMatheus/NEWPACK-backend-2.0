@@ -80,9 +80,10 @@ export async function usersRouter(app: FastifyTypedInstance) {
         },
         include: {
           Address: {
-            orderBy: {
-              id: "desc",
-            },
+            orderBy: [
+              { active: "desc" },
+              { id: "desc" }
+            ]
           },
           Order: {
             orderBy: {
