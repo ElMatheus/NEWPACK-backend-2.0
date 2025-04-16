@@ -62,7 +62,11 @@ export async function ordersDetailsRouter(app: FastifyTypedInstance) {
           id,
         },
         include: {
-          product: true,
+          product: {
+            include: {
+              Product_image: true,
+            }
+          },
           order: {
             include: {
               client: true,
