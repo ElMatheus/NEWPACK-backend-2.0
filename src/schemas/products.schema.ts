@@ -16,6 +16,7 @@ export const productSchema = z.object({
 
 export const productWithQuantitySchema = z.object({
   id: z.number().optional().nullable(),
+  order_details_id: z.string().optional().nullable(),
   name: z.string().min(1, { message: "Name cannot be empty" }),
   toughness: z.string().min(1, { message: "Toughness cannot be empty" }).optional().nullable(),
   dimension: z.string().min(1, { message: "Dimension cannot be empty" }).optional().nullable(),
