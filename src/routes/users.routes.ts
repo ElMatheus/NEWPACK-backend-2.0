@@ -259,6 +259,7 @@ export async function usersRouter(app: FastifyTypedInstance) {
 
       const formattedProducts = orderDetails.map((item) => ({
         id: item.product.id,
+        order_details_id: item.id,
         name: item.product.name,
         toughness: item.product.toughness,
         dimension: item.product.dimension,
