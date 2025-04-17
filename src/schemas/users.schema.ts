@@ -10,14 +10,6 @@ export const userSchema = z.object({
   products: productsResponseSchema.optional(),
 });
 
-export const userByIdSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  full_name: z.string(),
-  Address: addressResponseSchema,
-  products: productsWithQuantityResponseSchema,
-});
-
 export const createUserSchema = z.object({
   name: z.string().min(1, "Name cannot be empty"),
   full_name: z.string().min(1, "Full name cannot be empty"),
