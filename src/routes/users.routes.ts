@@ -1,6 +1,6 @@
 import z from "zod";
 import { FastifyTypedInstance } from "../types/Server";
-import { usersResponseSchema, userByIdSchema, createUserSchema, updateUserSchema } from "../schemas/users.schema";
+import { usersResponseSchema, userSchema, createUserSchema, updateUserSchema } from "../schemas/users.schema";
 import { productsWithQuantityResponseSchema } from "../schemas/products.schema";
 import { typeProduct, categoryProduct } from "@prisma/client";
 import { prisma } from "../database/prisma-client";
@@ -62,7 +62,7 @@ export async function usersRouter(app: FastifyTypedInstance) {
         id: z.string().describe("User ID"),
       }),
       response: {
-        200: userByIdSchema,
+        200: userSchema,
         404: z.object({
           error: z.string().describe("Error"),
           message: z.string().describe("Message"),
@@ -85,16 +85,6 @@ export async function usersRouter(app: FastifyTypedInstance) {
               { id: "desc" }
             ]
           },
-          Order: {
-            orderBy: {
-              order_date: "desc",
-            },
-            include: {
-              Order_details: {
-                include: { product: true }
-              },
-            },
-          }
         }
       });
 
@@ -104,30 +94,6 @@ export async function usersRouter(app: FastifyTypedInstance) {
           message: "User with this ID does not exist",
         });
       }
-
-      const productMap = new Map();
-
-      for (const order of user.Order) {
-        for (const detail of order.Order_details) {
-          if (!productMap.has(detail.product_id)) {
-            productMap.set(detail.product_id, {
-              id: detail.product.id,
-              name: detail.product.name,
-              toughness: detail.product.toughness,
-              dimension: detail.product.dimension,
-              type: detail.product.type,
-              category: detail.product.category,
-              description: detail.product.description,
-              unit_quantity: detail.product.unit_quantity,
-              unit_value: detail.product.unit_value,
-              quantity: detail.quantity,
-              order_date: order.order_date,
-            });
-          }
-        }
-      }
-
-      const productsWithDetails = Array.from(productMap.values());
 
       if (active) {
         const userActiveAddress = await prisma.user.findUnique({
@@ -147,14 +113,12 @@ export async function usersRouter(app: FastifyTypedInstance) {
         }
 
         return reply.status(200).send({
-          ...userActiveAddress,
-          products: productsWithDetails,
+          ...userActiveAddress
         });
       }
 
       return reply.status(200).send({
-        ...user,
-        products: productsWithDetails,
+        ...user
       });
 
     } catch (error) {
