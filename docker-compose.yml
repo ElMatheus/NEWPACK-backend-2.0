@@ -31,6 +31,10 @@ services:
       - redis
     env_file:
       - .env
+    environment:
+      - TZ=America/Sao_Paulo
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
 
   nginx:
     image: nginx:latest
