@@ -5,7 +5,7 @@ import { loginSchema } from "../schemas/auth.schema";
 import { nanoid } from "nanoid";
 import { compare } from "bcrypt";
 import dayjs from "dayjs";
-
+import { ensureAuthenticated } from "../middlewares/ensureAuthenticated";
 
 export async function authRouter(app: FastifyTypedInstance) {
   app.post("/login", {
@@ -192,8 +192,12 @@ export async function authRouter(app: FastifyTypedInstance) {
   });
 
   app.delete("/refresh", {
+    preHandler: [ensureAuthenticated],
     schema: {
       tags: ["auth"],
+      security: [
+        { bearerAuth: [] },
+      ],
       description: "Delete a refresh token",
       body: z.object({
         refresh_token: z.string().describe("Refresh Token"),

@@ -8,7 +8,7 @@ import { ensureAdmin } from "../middlewares/ensureAdmin";
 
 export async function ordersRouter(app: FastifyTypedInstance) {
   app.get("/", {
-    preHandler: [ensureAuthenticated, ensureAdmin],
+    preHandler: [ensureAuthenticated],
     schema: {
       tags: ["orders"],
       security: [

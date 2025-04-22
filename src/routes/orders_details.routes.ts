@@ -185,7 +185,7 @@ export async function ordersDetailsRouter(app: FastifyTypedInstance) {
   });
 
   app.delete("/:id", {
-    preHandler: ensureAuthenticated,
+    preHandler: [ensureAuthenticated, ensureAdmin],
     schema: {
       tags: ["orders_details"],
       security: [
