@@ -1,11 +1,12 @@
 import z from "zod";
 import { FastifyTypedInstance } from "../types/Server";
 import { prisma } from "../database/prisma-client";
-import { loginSchema } from "../schemas/auth.schema";
+import { loginSchema, refreshTokensResponseSchema } from "../schemas/auth.schema";
 import { nanoid } from "nanoid";
 import { compare } from "bcrypt";
 import dayjs from "dayjs";
 import { ensureAuthenticated } from "../middlewares/ensureAuthenticated";
+import { ensureAdmin } from "../middlewares/ensureAdmin";
 
 export async function authRouter(app: FastifyTypedInstance) {
   app.post("/login", {
@@ -233,4 +234,35 @@ export async function authRouter(app: FastifyTypedInstance) {
       });
     }
   })
+
+  app.get("/refresh", {
+    preHandler: [ensureAuthenticated, ensureAdmin],
+    schema: {
+      tags: ["auth"],
+      security: [
+        { bearerAuth: [] },
+      ],
+      description: "Get all refresh tokens",
+      response: {
+        200: refreshTokensResponseSchema.describe("Refresh Tokens"),
+        400: z.object({
+          error: z.string().describe("Error"),
+          message: z.string().describe("Message"),
+        }).describe("Bad Request"),
+      },
+    },
+  }, async (require, reply) => {
+    try {
+      const refreshTokens = await prisma.refresh_token.findMany();
+
+      return reply.status(200).send(refreshTokens);
+    } catch (error) {
+      console.error(error);
+      return reply.status(500).send({
+        error: "Internal Server Error",
+        message: "Something went wrong",
+      });
+    }
+  }
+  );
 }
