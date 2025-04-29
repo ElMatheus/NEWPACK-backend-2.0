@@ -11,8 +11,10 @@ server {
   listen 443 ssl;
   server_name api.solucoesnewpack.com.br;
 
-  ssl_certificate /etc/letsencrypt/live/api.solucoesnewpack.com.br/fullchain.pem;
+  ssl_certificate /etc/letsencrypt/live/hom/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/api.solucoesnewpack.com.br/privkey.pem;
+  include /etc/letsencrypt/options-ssl-nginx.conf;
+  ssl_dhparam /etc/letsencrypt/ssl-dhparam
 
   location / {
     proxy_pass http://api-newpack:4000;
