@@ -1,7 +1,7 @@
 node_modules
 .env
 data/
-certbot/
+certbot
 
 # Docker
 docker-compose.override.yml
