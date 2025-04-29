@@ -27,6 +27,7 @@ export const productWithQuantitySchema = z.object({
   unit_value: z.number(),
   quantity: z.number(),
   order_date: z.date(),
+  order_status: z.string(),
   image: z.string().optional(),
 });
 

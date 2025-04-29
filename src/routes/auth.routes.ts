@@ -61,7 +61,7 @@ export async function authRouter(app: FastifyTypedInstance) {
         isAdmin: user.isAdmin,
       }, {
         sub: user.id,
-        expiresIn: "15m",
+        expiresIn: "30m",
       });
 
       const expiresIn = dayjs().add(30, "day").unix();
@@ -160,7 +160,7 @@ export async function authRouter(app: FastifyTypedInstance) {
         isAdmin: user.isAdmin,
       }, {
         sub: token.user_id,
-        expiresIn: "15m",
+        expiresIn: "30m",
       });
 
       await prisma.refresh_token.delete({

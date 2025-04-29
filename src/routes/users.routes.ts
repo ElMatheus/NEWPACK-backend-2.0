@@ -192,6 +192,7 @@ export async function usersRouter(app: FastifyTypedInstance) {
           order: {
             select: {
               order_date: true,
+              status: true,
               Order_details: {
                 select: {
                   quantity: true,
@@ -235,6 +236,7 @@ export async function usersRouter(app: FastifyTypedInstance) {
         unit_value: item.product.unit_value,
         quantity: item.quantity,
         order_date: item.order.order_date,
+        order_status: item.order.status,
         image: item.product.Product_image[0]?.image_url,
       }));
 

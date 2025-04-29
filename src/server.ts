@@ -17,7 +17,7 @@ app.register(fastifySwagger, {
   openapi: {
     info: {
       title: 'NEWPACK API',
-      version: '1.1.0',
+      version: '1.1.1',
     },
     components: {
       securitySchemes: {
