@@ -12,6 +12,7 @@ Projeto afim de automatizar os pedidos da NEWPACK para melhorar o serviço ao cl
 - **Pedido**: Permite a criação de pedidos pelos usuários e o gerenciamento desses pedidos pelos administradores.
 - **Detalhe_pedido**: Contém as informações específicas de cada item dentro de um pedido.
 - **Email**: Responsável por envio de e-mails, como confirmação de pedido ou mensagens de contato.
+- **Whatsapp**: Responsável por verificar a conexão e gerenciar o envio de mensagens via WhatsApp para a confirmação de pedidos.
 
 ## Tecnologias Utilizadas
 
@@ -22,6 +23,7 @@ Projeto afim de automatizar os pedidos da NEWPACK para melhorar o serviço ao cl
 - PostgreSQL
 - Prisma ORM
 - Nodemailer
+- Whatsapp-Web Js
 - Docker
 - Nginx
 - Swagger
