@@ -1,3 +1,9 @@
+/**
+ * Desenvolvido por Matheus Gomes - [https://github.com/ElMatheus | matheusgomesgoncalves.564@gmail.com]
+ * Projeto: NEWPACK-API
+ * Data de criação: 2024-2025
+ */
+
 import z from "zod";
 import { FastifyTypedInstance } from "../types/Server";
 import { prisma } from "../database/prisma-client";

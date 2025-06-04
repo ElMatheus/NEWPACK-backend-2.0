@@ -37,4 +37,11 @@ export type SendEmailType = {
     name: string;
     telephone: string;
   };
+  hasNotification: boolean;
 };
+
+export type SendConfirmationEmailType = {
+  order_id: string;
+  client_name: string;
+  client_email: string;
+}

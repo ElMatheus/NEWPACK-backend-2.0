@@ -3,6 +3,7 @@ import { z } from "zod";
 export const emailSchema = z.object({
   name: z.string(),
   telephone: z.string(),
+  hasNotification: z.boolean().default(false),
 });
 
 export const newEmailSchema = z.object({

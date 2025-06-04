@@ -1,3 +1,9 @@
+/**
+ * Desenvolvido por Matheus Gomes - [https://github.com/ElMatheus | matheusgomesgoncalves.564@gmail.com]
+ * Projeto: NEWPACK-API
+ * Data de criação: 2024-2025
+ */
+
 import { fastify } from 'fastify';
 import { fastifyCors } from '@fastify/cors';
 import { validatorCompiler, serializerCompiler, type ZodTypeProvider, jsonSchemaTransform } from 'fastify-type-provider-zod'
@@ -17,7 +23,7 @@ app.register(fastifySwagger, {
   openapi: {
     info: {
       title: 'NEWPACK API',
-      version: '1.1.1',
+      version: '1.2.0',
     },
     components: {
       securitySchemes: {

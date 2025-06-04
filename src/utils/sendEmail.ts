@@ -1,10 +1,9 @@
 import NodeMailer from 'nodemailer';
-import { SendEmailType } from '../types/Email';
+import { SendEmailType, SendConfirmationEmailType } from '../types/Email';
 
 export default class EmailService {
-  transporter: any;
-  constructor() {
-    this.transporter = NodeMailer.createTransport({
+  private static createTransporter() {
+    return NodeMailer.createTransport({
       secure: true,
       host: 'smtp.gmail.com',
       port: 465,
@@ -63,6 +62,13 @@ export default class EmailService {
         <h2 style="color: rgb(31, 73, 125); margin-bottom: 10px;">Contato</h2>
         <p><strong>Nome:</strong> ${email.infosClient.name}</p>
         <p style="margin-bottom: 20px;"><strong>Telefone:</strong> ${email.infosClient.telephone}</p>
+
+   <div style="margin: 20px 0; padding: 15px; background-color: #e9f7ef; border-left: 5px solid #28a745; border-radius: 5px;">
+      <p style="margin: 0; font-weight: bold; color: #155724;">
+        ${email.hasNotification ? 'Este pedido foi enviado por e-mail e também compartilhado no grupo do WhatsApp.' : 'Este pedido foi enviado somente por e-mail.'}
+      </p>
+    </div>
+
       <p class="x_MsoNormal"><b><span>&nbsp;</span></b></p>
         <footer style="margin-top: 20px; text-align: center; color: #555;">
           <p><strong>Comercial - Soluções New Pack - Ltda</strong></p>
@@ -77,17 +83,68 @@ export default class EmailService {
       </div>
         `,
       };
+      const transporter = EmailService.createTransporter();
+      await transporter.sendMail(mailOptions);
+    } catch (error) {
+      throw error;
+    }
+  }
 
-      const transporter = NodeMailer.createTransport({
-        secure: true,
-        host: 'smtp.gmail.com',
-        port: 465,
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        }
-      });
-
+  static async sendOrderConfirmationEmail(email: SendConfirmationEmailType) {
+    try {
+      const mailOptions = {
+        to: email.client_email,
+        subject: `Confirmação do Pedido #${email.order_id}`, html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Confirmação do Pedido</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5; color: #333333;">
+          <div style="max-width: 800px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <!-- Header with Logo -->
+            <div style="background-color: rgb(31, 73, 125); padding: 30px 20px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">Confirmação do Pedido</h1>
+            </div>
+            
+            <!-- Main Content -->
+            <div style="padding: 40px 30px;">
+              <p style="font-size: 18px; margin-bottom: 25px;">Olá <strong>${email.client_name}</strong>,</p>
+              
+              <div style="background-color: #f9f9f9; border-left: 4px solid rgb(31, 73, 125); padding: 15px; margin-bottom: 25px; border-radius: 4px;">
+                <p style="margin: 0; font-size: 16px;">Seu pedido <span style="font-weight: bold; color: rgb(31, 73, 125); font-size: 18px;">#${email.order_id}</span> foi recebido com sucesso!</p>
+              </div>
+              
+              <p style="font-size: 16px; margin-bottom: 30px; line-height: 1.5;">
+              Agradecemos pela sua confiança em nossos produtos. Nossa equipe já está cuidando do seu pedido e, em breve, o produto que você comprou chegará até você.
+              </p>
+              
+              <p style="font-size: 16px; margin-bottom: 10px;">Se tiver alguma dúvida, não hesite em entrar em contato:</p>
+              <p style="font-size: 16px; margin-bottom: 30px;">
+                <a href="mailto:solucoesnewpack@gmail.com" style="color: rgb(31, 73, 125); text-decoration: none; font-weight: 500;">solucoesnewpack@gmail.com</a> | <a href="tel:+5519996991843" style="color: rgb(31, 73, 125); text-decoration: none; font-weight: 500;">(19) 99699-1843</a>
+              </p>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background-color: #f0f0f0; padding: 25px; text-align: center; border-top: 1px solid #e0e0e0;">
+              <p style="margin-top: 0; margin-bottom: 10px; font-weight: 600; font-size: 16px;">Equipe Comercial - Soluções New Pack - Ltda</p>
+              <p style="margin-top: 0; margin-bottom: 20px; font-size: 14px;">Rua Paulo Trombeta – 76, Jd. Bom Retiro – Valinhos, SP</p>
+              
+              <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                <p style="font-size: 14px; color: rgb(31, 73, 125); font-weight: bold; margin-bottom: 5px;">Levando Soluções para seus negócios</p>
+                <p style="font-size: 12px; color: #6c757d; margin-top: 15px;">
+                  <span style="color: #28a745; font-size: 14px;">♻</span> Antes de imprimir pense no meio ambiente
+                </p>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+      };
+      const transporter = EmailService.createTransporter();
       await transporter.sendMail(mailOptions);
     } catch (error) {
       throw error;

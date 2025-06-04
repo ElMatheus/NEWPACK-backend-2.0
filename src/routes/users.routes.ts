@@ -1,3 +1,9 @@
+/**
+ * Desenvolvido por Matheus Gomes - [https://github.com/ElMatheus | matheusgomesgoncalves.564@gmail.com]
+ * Projeto: NEWPACK-API
+ * Data de criação: 2024-2025
+ */
+
 import z from "zod";
 import { FastifyTypedInstance } from "../types/Server";
 import { usersResponseSchema, userSchema, createUserSchema, updateUserSchema } from "../schemas/users.schema";
@@ -272,7 +278,7 @@ export async function usersRouter(app: FastifyTypedInstance) {
       },
     },
   }, async (require, reply) => {
-    const { name, full_name, isAdmin, password } = require.body;
+    const { name, full_name, isAdmin, email, password } = require.body;
 
     try {
       const userExists = await prisma.user.findFirst({
@@ -299,7 +305,8 @@ export async function usersRouter(app: FastifyTypedInstance) {
           name,
           full_name,
           password: passwordHash,
-          isAdmin: isAdmin ?? undefined
+          isAdmin: isAdmin ?? undefined,
+          email: email ?? undefined,
         },
       });
 
@@ -374,7 +381,7 @@ export async function usersRouter(app: FastifyTypedInstance) {
   });
 
   app.put("/:id", {
-    preHandler: [ensureAuthenticated, ensureAdmin],
+    preHandler: [ensureAuthenticated],
     schema: {
       tags: ["users"],
       security: [
@@ -399,7 +406,7 @@ export async function usersRouter(app: FastifyTypedInstance) {
     },
   }, async (require, reply) => {
     const { id } = require.params;
-    const { name, full_name, password } = require.body;
+    const { name, full_name, password, email } = require.body;
 
     try {
       const user = await prisma.user.findUnique({
@@ -434,6 +441,7 @@ export async function usersRouter(app: FastifyTypedInstance) {
         });
       }
 
+      // Handle password update separately if provided
       if (password) {
         const passwordHash = await hash(password, 8);
 
@@ -447,13 +455,15 @@ export async function usersRouter(app: FastifyTypedInstance) {
         });
       }
 
+      // Update user name, full_name, and email
       await prisma.user.update({
         where: {
           id,
         },
         data: {
           name,
-          full_name
+          full_name,
+          email, // Added email to the update operation
         },
       });
 
