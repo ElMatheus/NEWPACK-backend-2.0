@@ -27,6 +27,39 @@ client.on('ready', () => {
   reasonDisconnect = null;
 })
 
+client.on('message_reaction', async (reaction) => {
+  const groupId = process.env.WHATSAPP_CHAT_ID;
+  const botId = client.info.wid._serialized;
+  const reactionSenderId = reaction.senderId;
+  const msgId = reaction.msgId as any;
+
+  const isCorrectGroup = reaction.msgId.remote === groupId;
+  const isFromSpecificContact = reactionSenderId === botId;
+  const isMessageFromSameContact = msgId.participant === botId;
+  const isThumbsUp = reaction.reaction === '👍';
+
+  const shouldReply = isCorrectGroup && isFromSpecificContact && isMessageFromSameContact && isThumbsUp;
+
+  if (!shouldReply) return;
+
+  try {
+    const msg = await client.getMessageById(reaction.msgId._serialized);
+
+    const orderRegex = /Pedido Nº:\* ([\w-]+)/;
+    const match = msg.body.match(orderRegex);
+
+    if (match) {
+      const orderId = match[1];
+      const reply = `🚛 *Pedido enviado!*\n\nA mensagem foi reagida com ${reaction.reaction}\nIsso indica que o pedido *${orderId}* já foi enviado para entrega.\n\n⚠️ *Reaja somente quando o pedido for realmente enviado, isso é essencial para o controle dos pedidos!*`;
+      await msg.reply(reply);
+    } else {
+      await msg.reply(`⚠️ A mensagem foi reagida com ${reaction.reaction}, mas não consegui identificar o número do pedido. Verifique se a mensagem segue o padrão.`);
+    }
+  } catch (error) {
+    console.error('Erro ao processar reação:', error);
+  }
+});
+
 client.on('disconnected', (reason) => {
   reasonDisconnect = reason;
   latestQrCode = null;
