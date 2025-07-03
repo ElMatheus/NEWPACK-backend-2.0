@@ -28,17 +28,21 @@ client.on('ready', () => {
 })
 
 client.on('message_reaction', async (reaction) => {
+  if (reaction.ack === undefined) return;
+  function normalizeSenderId(senderId: string) {
+    if (senderId.includes(':')) {
+      return senderId.split(':')[0] + '@c.us';
+    }
+    return senderId;
+  }
   const groupId = process.env.WHATSAPP_CHAT_ID;
   const botId = client.info.wid._serialized;
-  const reactionSenderId = reaction.senderId;
-  const msgId = reaction.msgId as any;
-
+  const reactionSenderId = normalizeSenderId(reaction.senderId);
   const isCorrectGroup = reaction.msgId.remote === groupId;
-  const isFromSpecificContact = reactionSenderId === botId;
-  const isMessageFromSameContact = msgId.participant === botId;
+  const isFromBot = reactionSenderId === botId;
   const isThumbsUp = reaction.reaction === '👍';
 
-  const shouldReply = isCorrectGroup && isFromSpecificContact && isMessageFromSameContact && isThumbsUp;
+  const shouldReply = isCorrectGroup && isFromBot && reaction.msgId.fromMe && isThumbsUp;
 
   if (!shouldReply) return;
 
@@ -50,7 +54,12 @@ client.on('message_reaction', async (reaction) => {
 
     if (match) {
       const orderId = match[1];
-      const reply = `🚛 *Pedido enviado!*\n\nA mensagem foi reagida com ${reaction.reaction}\nIsso indica que o pedido *${orderId}* já foi enviado para entrega.\n\n⚠️ *Reaja somente quando o pedido for realmente enviado, isso é essencial para o controle dos pedidos!*`;
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: { client: { select: { name: true } } }
+      });
+
+      const reply = `🚛 *Pedido enviado!*\n\nA mensagem foi reagida com ${reaction.reaction}\nIsso indica que o pedido *${orderId}* para o cliente *${order?.client.name}* já foi enviado para entrega.\n\n⚠️ *Reaja somente quando o pedido for realmente enviado, isso é essencial para o controle dos pedidos!*`;
       await msg.reply(reply);
     } else {
       await msg.reply(`⚠️ A mensagem foi reagida com ${reaction.reaction}, mas não consegui identificar o número do pedido. Verifique se a mensagem segue o padrão.`);

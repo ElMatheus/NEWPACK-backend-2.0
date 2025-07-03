@@ -1,44 +1,131 @@
 import z from "zod";
 import { FastifyTypedInstance } from "../types/Server";
-import { productsResponseSchema, productSchema, updateProductSchema } from "../schemas/products.schema";
+import { productSchema, updateProductSchema, allProductsSchema } from "../schemas/products.schema";
 import { prisma } from "../database/prisma-client";
-import { typeProduct, categoryProduct } from "@prisma/client";
+import { categoryProduct } from "@prisma/client";
 import { ensureAuthenticated } from "../middlewares/ensureAuthenticated";
 import { ensureAdmin } from "../middlewares/ensureAdmin";
 
 export async function productsRouter(app: FastifyTypedInstance) {
   app.get("/", {
-    preHandler: [ensureAuthenticated, ensureAdmin],
     schema: {
       tags: ["products"],
-      security: [
-        {
-          bearerAuth: [],
-        },
-      ],
       description: "Get all products",
       querystring: z.object({
-        category: z.string().optional().describe("Category"),
-        type: z.string().optional().describe("Type"),
+        categories: z.string().optional().describe("Comma-separated list of categories"),
+        search: z.union([z.string(), z.array(z.string())]).optional().describe("Search term(s) for product names - can use multiple parameters"),
+        limit: z.string().optional().describe("Number of items per page"),
+        page: z.string().optional().describe("Page number"),
       }).describe("Query Parameters"),
       response: {
-        200: productsResponseSchema
+        200: allProductsSchema,
+        400: z.object({
+          error: z.string().describe("Error"),
+          message: z.string().describe("Message"),
+        }).describe("Bad Request"),
       }
     },
   }, async (require, reply) => {
-    const { category, type } = require.query as { category?: string; type?: string };
+    const { categories, search, limit, page } = require.query as {
+      categories?: string;
+      search?: string | string[];
+      limit?: string;
+      page?: string;
+    };
 
-    const products = await prisma.product.findMany({
-      where: {
-        ...(category && { category: category as categoryProduct }),
-        ...(type && { type: type as typeProduct }),
-      },
-      include: {
-        Product_image: true,
-      },
+    const pageNumber = page ? parseInt(page) : 1;
+    const limitNumber = limit ? parseInt(limit) : 10;
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const whereConditions: any = {};
+
+    if (categories) {
+      const inputCategories = categories.split(',');
+      const validCategories: categoryProduct[] = [];
+      const invalidCategories: string[] = [];
+
+      // Check each category against the enum
+      inputCategories.forEach(cat => {
+        if (Object.values(categoryProduct).includes(cat as categoryProduct)) {
+          validCategories.push(cat as categoryProduct);
+        } else {
+          invalidCategories.push(cat);
+        }
+      });
+
+      if (invalidCategories.length > 0) {
+        return reply.status(400).send({
+          error: "Invalid categories",
+          message: `The following categories are invalid: ${invalidCategories.join(', ')}. Valid categories are: ${Object.values(categoryProduct).join(', ')}`,
+        });
+      }
+
+      if (validCategories.length > 0) {
+        whereConditions.category = {
+          in: validCategories
+        };
+      }
+    }
+
+    if (search) {
+      // Convert to array if it's a single string
+      const searchTerms = Array.isArray(search) ? search : [search];
+
+      // Create OR conditions for each search term
+      whereConditions.OR = searchTerms.map(term => ({
+        name: {
+          contains: term,
+          mode: 'insensitive'
+        }
+      }));
+    }
+
+    const [products, totalCount] = await Promise.all([
+      prisma.product.findMany({
+        where: whereConditions,
+        orderBy: {
+          Order_details: {
+            _count: 'desc', // First the order in promotions
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          toughness: true,
+          dimension: true,
+          type: true,
+          category: true,
+          description: true,
+          unit_quantity: true,
+          unit_value: false,
+          Product_image: true,
+          Order_details: {
+            take: 1,
+            select: {
+              id: true,
+            },
+            where: {
+              order: {
+                client_id: process.env.NEWPACK_ID,
+              }
+            },
+          },
+        },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.product.count({ where: whereConditions })
+    ]);
+
+    return reply.status(200).send({
+      products,
+      pagination: {
+        total: totalCount,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(totalCount / limitNumber)
+      }
     });
-
-    return reply.status(200).send(products);
   }
   );
 
