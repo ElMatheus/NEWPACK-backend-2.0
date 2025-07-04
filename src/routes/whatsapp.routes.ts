@@ -29,23 +29,13 @@ client.on('ready', () => {
 
 client.on('message_reaction', async (reaction) => {
   if (reaction.ack === undefined) return;
-  function normalizeSenderId(senderId: string) {
-    if (senderId.includes(':')) {
-      return senderId.split(':')[0] + '@c.us';
-    }
-    return senderId;
-  }
   const groupId = process.env.WHATSAPP_CHAT_ID;
-  const botId = client.info.wid._serialized;
-  const reactionSenderId = normalizeSenderId(reaction.senderId);
   const isCorrectGroup = reaction.msgId.remote === groupId;
-  const isFromBot = reactionSenderId === botId;
   const isThumbsUp = reaction.reaction === '👍';
 
-  const shouldReply = isCorrectGroup && isFromBot && reaction.msgId.fromMe && isThumbsUp;
+  const shouldReply = isCorrectGroup && reaction.id.fromMe && reaction.msgId.fromMe && isThumbsUp;
 
   if (!shouldReply) return;
-
   try {
     const msg = await client.getMessageById(reaction.msgId._serialized);
 
@@ -58,6 +48,11 @@ client.on('message_reaction', async (reaction) => {
         where: { id: orderId },
         select: { client: { select: { name: true } } }
       });
+
+      if (!order) {
+        await msg.reply(`⚠️ Pedido *${orderId}* não encontrado. Verifique se o ID está correto.`);
+        return;
+      }
 
       const reply = `🚛 *Pedido enviado!*\n\nA mensagem foi reagida com ${reaction.reaction}\nIsso indica que o pedido *${orderId}* para o cliente *${order?.client.name}* já foi enviado para entrega.\n\n⚠️ *Reaja somente quando o pedido for realmente enviado, isso é essencial para o controle dos pedidos!*`;
       await msg.reply(reply);
