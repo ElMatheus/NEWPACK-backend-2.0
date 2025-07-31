@@ -20,48 +20,11 @@ const client = new Client({
 
 client.on('qr', async (qr) => {
   latestQrCode = await qrcode.toDataURL(qr);
-})
+});
 
 client.on('ready', () => {
   latestQrCode = null;
   reasonDisconnect = null;
-})
-
-client.on('message_reaction', async (reaction) => {
-  if (reaction.ack === undefined) return;
-  const groupId = process.env.WHATSAPP_CHAT_ID;
-  const isCorrectGroup = reaction.msgId.remote === groupId;
-  const isThumbsUp = reaction.reaction === '👍';
-
-  const shouldReply = isCorrectGroup && reaction.id.fromMe && reaction.msgId.fromMe && isThumbsUp;
-
-  if (!shouldReply) return;
-  try {
-    const msg = await client.getMessageById(reaction.msgId._serialized);
-
-    const orderRegex = /Pedido Nº:\* ([\w-]+)/;
-    const match = msg.body.match(orderRegex);
-
-    if (match) {
-      const orderId = match[1];
-      const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        select: { client: { select: { name: true } } }
-      });
-
-      if (!order) {
-        await msg.reply(`⚠️ Pedido *${orderId}* não encontrado. Verifique se o ID está correto.`);
-        return;
-      }
-
-      const reply = `🚛 *Pedido enviado!*\n\nA mensagem foi reagida com ${reaction.reaction}\nIsso indica que o pedido *${orderId}* para o cliente *${order?.client.name}* já foi enviado para entrega.\n\n⚠️ *Reaja somente quando o pedido for realmente enviado, isso é essencial para o controle dos pedidos!*`;
-      await msg.reply(reply);
-    } else {
-      await msg.reply(`⚠️ A mensagem foi reagida com ${reaction.reaction}, mas não consegui identificar o número do pedido. Verifique se a mensagem segue o padrão.`);
-    }
-  } catch (error) {
-    console.error('Erro ao processar reação:', error);
-  }
 });
 
 client.on('disconnected', (reason) => {
