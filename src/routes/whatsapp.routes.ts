@@ -1,136 +1,18 @@
 import z from "zod";
-import qrcode from "qrcode";
 import { FastifyTypedInstance } from "../types/Server";
 import { whatsappStatusSchema, whatsappConnectSchema } from "../schemas/whatsapp.schema";
 import { ensureAuthenticated } from "../middlewares/ensureAuthenticated";
 import { ensureAdmin } from "../middlewares/ensureAdmin";
-import { Client } from "whatsapp-web.js";
 import { prisma } from "../database/prisma-client";
-
-let latestQrCode: string | null = null;
-let reasonDisconnect: string | null = null;
-
-const client = new Client({
-  takeoverOnConflict: true,
-  puppeteer: {
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  },
-});
-
-client.on('qr', async (qr) => {
-  latestQrCode = await qrcode.toDataURL(qr);
-});
-
-client.on('ready', () => {
-  latestQrCode = null;
-  reasonDisconnect = null;
-});
-
-client.on('disconnected', (reason) => {
-  reasonDisconnect = reason;
-  latestQrCode = null;
-});
-
-client.initialize();
+import axios from "axios";
 
 export async function whatsappRouter(app: FastifyTypedInstance) {
-  app.get("/connect", {
-    preHandler: [ensureAuthenticated, ensureAdmin],
-    schema: {
-      tags: ["whatsapp"],
-      security: [
-        { bearerAuth: [] },
-      ],
-      description: "Connect to WhatsApp",
-      response: {
-        200: whatsappConnectSchema,
-        400: whatsappConnectSchema
-      },
-    },
-  }, async (request, reply) => {
-    try {
-      const state = await client.getState();
-
-      if (state == "CONNECTED") {
-        return reply.status(200).send({
-          message: "WhatsApp already connected",
-          qr: null,
-        });
-      }
-
-      if (!latestQrCode) {
-        return reply.status(400).send({
-          message: "QR code not generated yet",
-          qr: null,
-        });
-      }
-      return reply.status(200).send({
-        message: "QR code generated successfully",
-        qr: latestQrCode,
-      });
-    } catch (error) {
-      console.error("Error getting state: ", error);
-      return reply.status(400).send({
-        message: "Error getting state",
-        qr: null,
-      });
-    }
-  });
-
-  app.get("/status", {
-    preHandler: [ensureAuthenticated, ensureAdmin],
-    schema: {
-      tags: ["whatsapp"],
-      security: [
-        { bearerAuth: [] },
-      ],
-      description: "Get WhatsApp connection status",
-      response: {
-        200: whatsappStatusSchema,
-        400: whatsappStatusSchema
-      },
-    },
-  }, async (request, reply) => {
-    try {
-      const state = await client.getState();
-      if (state === "CONNECTED") {
-        return reply.status(200).send({
-          status: "connected",
-          message: `WhatsApp is connected on ${client.info.wid.user}`,
-        });
-      }
-
-      if (state == null && reasonDisconnect) {
-        return reply.status(200).send({
-          status: "disconnected",
-          message: `WhatsApp is disconnected. Reason: ${reasonDisconnect}`,
-        });
-      }
-
-      return reply.status(200).send({
-        status: state,
-        message: "WhatsApp is not connected",
-      });
-    } catch (error) {
-      console.error("Error getting WhatsApp status:", error);
-      return reply.status(400).send({
-        status: null,
-        message: "Error getting WhatsApp status",
-      });
-    }
-  });
-
   app.post("/send-message", {
-    preHandler: [ensureAuthenticated],
     schema: {
       tags: ["whatsapp"],
-      security: [
-        { bearerAuth: [] },
-      ],
       description: "Send a message via WhatsApp",
       body: z.object({
-        orderId: z.string().min(1, "Message cannot be empty"),
+        orderId: z.string().min(1, "Order cannot be empty"),
       }),
       response: {
         200: z.object({
@@ -145,59 +27,82 @@ export async function whatsappRouter(app: FastifyTypedInstance) {
     }
   }, async (request, reply) => {
     const { orderId } = request.body;
+    const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE;
+    const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
+    const WHATSAPP_CHAT_ID = process.env.WHATSAPP_CHAT_ID; 
 
     try {
-      const state = await client.getState();
-      if (state !== "CONNECTED") {
-        return reply.status(503).send({
-          error: "WhatsApp is not connected",
-          message: "Please connect WhatsApp first",
-        });
-      }
-
-      const order = await prisma.order.findFirst({
-        where: { id: orderId },
-        include: {
-          Order_details: {
-            include: { product: true }
-          },
-          client: {
-            include: { Address: { where: { active: true } } }
-          }
-        }
-      });
-
-      if (!order) {
+      if (!EVOLUTION_API_URL || !EVOLUTION_INSTANCE) {
         return reply.status(400).send({
-          error: "Order not found",
-          message: "Order with this id not found",
+          error: "Evolution API not configured",
+          message: "Please set the EVOLUTION_API_URL and EVOLUTION_INSTANCE environment variables",
         });
       }
-
-      if (!process.env.WHATSAPP_CHAT_ID) {
+      
+      if (!WHATSAPP_CHAT_ID) {
         return reply.status(400).send({
           error: "WhatsApp chat ID not configured",
           message: "Please set the WHATSAPP_CHAT_ID environment variable",
         });
       }
 
-      const message = `🔔 *NOVO PEDIDO* 🔔
+      // const order = await prisma.order.findFirst({
+      //   where: { id: orderId },
+      //   include: {
+      //     Order_details: {
+      //       include: { product: true }
+      //     },
+      //     client: {
+      //       include: { Address: { where: { active: true } } }
+      //     }
+      //   }
+      // });
 
-📦 *Pedido Nº:* ${order.id}
-👥 *Cliente:* ${order.client.name}
-${order.description ? `📝 *Descrição:* ${order.description}` : ''}
+      // if (!order) {
+      //   return reply.status(400).send({
+      //     error: "Order not found",
+      //     message: "Order with this id not found",
+      //   });
+      // }
 
-*PRODUTOS:*
-${order.Order_details.map(detail =>
-        `➡️ ID: ${detail.product.id} | ${detail.product.name} | Dimensão: ${detail.product.dimension || 'N/A'} | ShoreA: ${detail.product.toughness || 'N/A'} | Qtd: ${detail.quantity}`
-      ).join('\n')}
 
-💬 *Mais informações disponíveis no email*`
-      await client.sendMessage(process.env.WHATSAPP_CHAT_ID, message);
-      return reply.status(200).send({
-        status: "success",
-        message: "Message sent successfully",
-      });
+//       const message = `🔔 *NOVO PEDIDO* 🔔
+
+// 📦 *Pedido Nº:* ${order.id}
+// 👥 *Cliente:* ${order.client.name}
+// ${order.description ? `📝 *Descrição:* ${order.description}` : ''}
+
+// *PRODUTOS:*
+// ${order.Order_details.map(detail =>
+//         `➡️ ID: ${detail.product.id} | ${detail.product.name} | Dimensão: ${detail.product.dimension || 'N/A'} | ShoreA: ${detail.product.toughness || 'N/A'} | Qtd: ${detail.quantity}`
+//       ).join('\n')}
+
+// 💬 *Mais informações disponíveis no email*`
+
+      const evolutionResponse = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
+        {
+          number: WHATSAPP_CHAT_ID,
+          text: "message",
+        },
+        {
+          headers: {
+            'apikey': process.env.AUTHENTICATION_API_KEY,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (evolutionResponse.status === 200 || evolutionResponse.status === 201) {
+        return reply.status(200).send({
+          status: "success",
+          message: "Message sent successfully",
+        });
+      } else {
+        return reply.status(400).send({
+          error: "Evolution API returned unexpected status",
+          message: `Evolution API returned status: ${evolutionResponse.status}`,
+        });
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       return reply.status(400).send({
