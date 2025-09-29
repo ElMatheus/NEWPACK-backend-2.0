@@ -1,35 +1,84 @@
 import z from "zod";
 import { FastifyTypedInstance } from "../types/Server";
-import { whatsappStatusSchema, whatsappConnectSchema } from "../schemas/whatsapp.schema";
+import { whatsappStatusSchema, whatsappConnectSchema, whatsappSendMessageSchema, whatsappErrorSchema } from "../schemas/whatsapp.schema";
 import { ensureAuthenticated } from "../middlewares/ensureAuthenticated";
 import { ensureAdmin } from "../middlewares/ensureAdmin";
 import { prisma } from "../database/prisma-client";
 import axios from "axios";
 
 export async function whatsappRouter(app: FastifyTypedInstance) {
-  app.post("/send-message", {
+  app.get("/status", {
     schema: {
       tags: ["whatsapp"],
+      description: "Check Evolution API instance status",
+      response: {
+        200: z.object({
+          status: z.string(),
+          instance: z.string(),
+          connected: z.boolean(),
+          details: z.any().optional(),
+        }),
+        400: whatsappErrorSchema,
+      },
+    }
+  }, async (request, reply) => {
+    const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
+    const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE;
+    const AUTHENTICATION_API_KEY = process.env.AUTHENTICATION_API_KEY;
+
+    if (!EVOLUTION_API_URL || !EVOLUTION_INSTANCE || !AUTHENTICATION_API_KEY) {
+      return reply.status(400).send({
+        error: "Evolution API not configured",
+        message: "Please set the EVOLUTION_API_URL, EVOLUTION_INSTANCE, and AUTHENTICATION_API_KEY environment variables",
+      });
+    }
+
+    try {
+      const { data } = await axios.get(
+        `${EVOLUTION_API_URL}/instance/findOne/${EVOLUTION_INSTANCE}`,
+        {
+          headers: { apikey: AUTHENTICATION_API_KEY }
+        }
+      );
+
+      return reply.status(200).send({
+        status: "ok",
+        instance: EVOLUTION_INSTANCE,
+        connected: !!data.response,
+        details: data.response,
+      });
+    } catch (error: any) {
+      return reply.status(200).send({
+        status: "error",
+        instance: EVOLUTION_INSTANCE,
+        connected: false,
+        details: error.response?.data || error.message,
+      });
+    }
+  });
+
+
+  app.post("/send-message", {
+    preHandler: [ensureAuthenticated],
+    schema: {
+      tags: ["whatsapp"],
+      security: [
+        { bearerAuth: [] },
+      ],
       description: "Send a message via WhatsApp",
       body: z.object({
         orderId: z.string().min(1, "Order cannot be empty"),
       }),
       response: {
-        200: z.object({
-          status: z.string(),
-          message: z.string(),
-        }),
-        400: z.object({
-          error: z.string().optional(),
-          message: z.string(),
-        }),
+        200: whatsappSendMessageSchema,
+        400: whatsappErrorSchema,
       },
     }
   }, async (request, reply) => {
     const { orderId } = request.body;
     const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE;
     const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL;
-    const WHATSAPP_CHAT_ID = process.env.WHATSAPP_CHAT_ID; 
+    const WHATSAPP_CHAT_ID = process.env.WHATSAPP_CHAT_ID;
 
     try {
       if (!EVOLUTION_API_URL || !EVOLUTION_INSTANCE) {
@@ -38,7 +87,7 @@ export async function whatsappRouter(app: FastifyTypedInstance) {
           message: "Please set the EVOLUTION_API_URL and EVOLUTION_INSTANCE environment variables",
         });
       }
-      
+
       if (!WHATSAPP_CHAT_ID) {
         return reply.status(400).send({
           error: "WhatsApp chat ID not configured",
@@ -46,62 +95,64 @@ export async function whatsappRouter(app: FastifyTypedInstance) {
         });
       }
 
-      // const order = await prisma.order.findFirst({
-      //   where: { id: orderId },
-      //   include: {
-      //     Order_details: {
-      //       include: { product: true }
-      //     },
-      //     client: {
-      //       include: { Address: { where: { active: true } } }
-      //     }
-      //   }
-      // });
-
-      // if (!order) {
-      //   return reply.status(400).send({
-      //     error: "Order not found",
-      //     message: "Order with this id not found",
-      //   });
-      // }
-
-
-//       const message = `🔔 *NOVO PEDIDO* 🔔
-
-// 📦 *Pedido Nº:* ${order.id}
-// 👥 *Cliente:* ${order.client.name}
-// ${order.description ? `📝 *Descrição:* ${order.description}` : ''}
-
-// *PRODUTOS:*
-// ${order.Order_details.map(detail =>
-//         `➡️ ID: ${detail.product.id} | ${detail.product.name} | Dimensão: ${detail.product.dimension || 'N/A'} | ShoreA: ${detail.product.toughness || 'N/A'} | Qtd: ${detail.quantity}`
-//       ).join('\n')}
-
-// 💬 *Mais informações disponíveis no email*`
-
-      const evolutionResponse = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
-        {
-          number: WHATSAPP_CHAT_ID,
-          text: "message",
-        },
-        {
-          headers: {
-            'apikey': process.env.AUTHENTICATION_API_KEY,
-            'Content-Type': 'application/json'
+      const order = await prisma.order.findFirst({
+        where: { id: orderId },
+        include: {
+          Order_details: {
+            include: { product: true }
+          },
+          client: {
+            include: { Address: { where: { active: true } } }
           }
         }
-      );
+      });
 
-      if (evolutionResponse.status === 200 || evolutionResponse.status === 201) {
+      if (!order) {
+        return reply.status(400).send({
+          error: "Order not found",
+          message: "Order with this id not found",
+        });
+      }
+
+      const message = `🔔 *NOVO PEDIDO* 🔔
+
+      📦 *Pedido Nº:* ${order.id}
+      👥 *Cliente:* ${order.client.name}
+      ${order.description ? `📝 *Descrição:* ${order.description}` : ''}
+
+      *PRODUTOS:*
+      ${order.Order_details.map(detail =>
+        `➡️ ID: ${detail.product.id} | ${detail.product.name} | Dimensão: ${detail.product.dimension || 'N/A'} | ShoreA: ${detail.product.toughness || 'N/A'} | Qtd: ${detail.quantity}`
+      ).join('\n')}
+
+      💬 *Mais informações disponíveis no email*`
+      try {
+        await axios.post(`${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
+          {
+            number: WHATSAPP_CHAT_ID,
+            text: message,
+          },
+          {
+            headers: {
+              'apikey': process.env.AUTHENTICATION_API_KEY,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
         return reply.status(200).send({
           status: "success",
           message: "Message sent successfully",
         });
-      } else {
-        return reply.status(400).send({
-          error: "Evolution API returned unexpected status",
-          message: `Evolution API returned status: ${evolutionResponse.status}`,
-        });
+      } catch (error: any) {
+        if (error.response) {
+          console.error("Error response from Evolution API:", error.response.data);
+          return reply.status(400).send({
+            error: "Failed to send message",
+            message: error.response.data.error,
+            details: error.response.data.response.message,
+          });
+        }
       }
     } catch (error) {
       console.error("Error sending message:", error);
