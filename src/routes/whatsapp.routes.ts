@@ -1,8 +1,7 @@
 import z from "zod";
 import { FastifyTypedInstance } from "../types/Server";
-import { whatsappStatusSchema, whatsappConnectSchema, whatsappSendMessageSchema, whatsappErrorSchema } from "../schemas/whatsapp.schema";
+import { whatsappStatusSchema, whatsappSendMessageSchema, whatsappErrorSchema } from "../schemas/whatsapp.schema";
 import { ensureAuthenticated } from "../middlewares/ensureAuthenticated";
-import { ensureAdmin } from "../middlewares/ensureAdmin";
 import { prisma } from "../database/prisma-client";
 import axios from "axios";
 
