@@ -12,12 +12,8 @@ export async function whatsappRouter(app: FastifyTypedInstance) {
       tags: ["whatsapp"],
       description: "Check Evolution API instance status",
       response: {
-        200: z.object({
-          status: z.string(),
-          instance: z.string(),
-          connected: z.boolean(),
-          details: z.any().optional(),
-        }),
+        200: whatsappStatusSchema,
+        404: whatsappErrorSchema,
         400: whatsappErrorSchema,
       },
     }
@@ -35,7 +31,7 @@ export async function whatsappRouter(app: FastifyTypedInstance) {
 
     try {
       const { data } = await axios.get(
-        `${EVOLUTION_API_URL}/instance/findOne/${EVOLUTION_INSTANCE}`,
+        `${EVOLUTION_API_URL}/instance/connectionState/${EVOLUTION_INSTANCE}`,
         {
           headers: { apikey: AUTHENTICATION_API_KEY }
         }
@@ -43,20 +39,20 @@ export async function whatsappRouter(app: FastifyTypedInstance) {
 
       return reply.status(200).send({
         status: "ok",
-        instance: EVOLUTION_INSTANCE,
-        connected: !!data.response,
-        details: data.response,
+        instance: data.instance.instanceName,
+        connected: data.instance.state,
       });
     } catch (error: any) {
-      return reply.status(200).send({
-        status: "error",
-        instance: EVOLUTION_INSTANCE,
-        connected: false,
-        details: error.response?.data || error.message,
-      });
+      if (error.response) {
+        console.error("Error response from Evolution API:", error.response.data);
+        return reply.status(404).send({
+          error: "Instance not found",
+          message: error.response.data.error,
+          details: error.response.data.response ? error.response.data.response.message : undefined,
+        });
+      }
     }
   });
-
 
   app.post("/send-message", {
     preHandler: [ensureAuthenticated],
@@ -71,7 +67,7 @@ export async function whatsappRouter(app: FastifyTypedInstance) {
       }),
       response: {
         200: whatsappSendMessageSchema,
-        400: whatsappErrorSchema,
+        503: whatsappErrorSchema,
       },
     }
   }, async (request, reply) => {
@@ -147,7 +143,7 @@ export async function whatsappRouter(app: FastifyTypedInstance) {
       } catch (error: any) {
         if (error.response) {
           console.error("Error response from Evolution API:", error.response.data);
-          return reply.status(400).send({
+          return reply.status(503).send({
             error: "Failed to send message",
             message: error.response.data.error,
             details: error.response.data.response.message,
