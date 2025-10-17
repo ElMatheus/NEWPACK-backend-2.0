@@ -23,7 +23,7 @@ Projeto afim de automatizar os pedidos da NEWPACK para melhorar o serviço ao cl
 - PostgreSQL
 - Prisma ORM
 - Nodemailer
-- Whatsapp-Web Js
+- Evolution API
 - Docker
 - Nginx
 - Swagger
