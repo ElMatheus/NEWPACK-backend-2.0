@@ -73,7 +73,8 @@ export default class EmailService {
         <footer style="margin-top: 20px; text-align: center; color: #555;">
           <p><strong>Comercial - Soluções New Pack - Ltda</strong></p>
           <p><a href="mailto:solucoesnewpack@gmail.com" style="color: #007bff;">solucoesnewpack@gmail.com</a></p>
-          <p>Rua Paulo Trombeta – 76, Jd. Bom Retiro – Valinhos, SP</p>
+          <p>Rua Modesta Polli Martins, 198 - Vila Norma Valinhos/SP - CEP 13.270-280</p>
+          <p>(19) 99699-1843 | Comercial: (19) 99651-1990</p>
            <b><span style="font-family: &quot;Agency FB&quot;, sans-serif; color: rgb(31, 73, 125) !important;">Levando Soluções para seus negócios</span></b><span></span>
            <p style="background-image:initial; background-position:initial; background-repeat:initial" class="x_MsoNormal">
                
@@ -130,7 +131,8 @@ export default class EmailService {
             <!-- Footer -->
             <div style="background-color: #f0f0f0; padding: 25px; text-align: center; border-top: 1px solid #e0e0e0;">
               <p style="margin-top: 0; margin-bottom: 10px; font-weight: 600; font-size: 16px;">Equipe Comercial - Soluções New Pack - Ltda</p>
-              <p style="margin-top: 0; margin-bottom: 20px; font-size: 14px;">Rua Paulo Trombeta – 76, Jd. Bom Retiro – Valinhos, SP</p>
+              <p style="margin-top: 0; margin-bottom: 5px; font-size: 14px;">Rua Modesta Polli Martins, 198 - Vila Norma Valinhos/SP - CEP 13.270-280</p>
+              <p style="margin-top: 0; margin-bottom: 20px; font-size: 14px;">(19) 99699-1843 | Comercial: (19) 99651-1990</p>
               
               <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
                 <p style="font-size: 14px; color: rgb(31, 73, 125); font-weight: bold; margin-bottom: 5px;">Levando Soluções para seus negócios</p>
